@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>বাংলাদেশি Betting App</title>
+  <style>
+    body { font-family: sans-serif; margin: 0; padding: 0; background: #f0f2f5; }
+    .container { max-width: 500px; margin: auto; padding: 20px; background:#fff; }
+    h2,h3 { text-align:center; margin-bottom:10px; }
+    input,select,button { width:100%; padding:10px; margin:8px 0; font-size:16px; }
+    small { display:block; text-align:center; margin-top:20px; color:#007bff; cursor:pointer; }
+    #adminSection,#adminLogin { display:none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>বাংলাদেশি Betting App</h2>
+    <h3>বেট প্লেস</h3>
+    <select id="betMatch"><option>ম্যাচ নেই</option></select>
+    <input type="number" id="betAmount" placeholder="টাকা লিখুন">
+    <button onclick="placeBet()">বেট দিন</button>
+
+    <h3>ডিপোজিট</h3>
+    <select id="depMethod">
+      <option value="bKash">bKash</option>
+      <option value="Nagad">Nagad</option>
+      <option value="Rocket">Rocket</option>
+    </select>
+    <input type="text" id="depNumber" placeholder="মোবাইল নম্বর">
+    <input type="number" id="depAmount" placeholder="টাকা">
+    <button onclick="requestDeposit()">ডিপোজিট করুন</button>
+
+    <h3>উইথড্র</h3>
+    <select id="wdMethod">
+      <option value="bKash">bKash</option>
+      <option value="Nagad">Nagad</option>
+      <option value="Rocket">Rocket</option>
+    </select>
+    <input type="text" id="wdNumber" placeholder="মোবাইল নম্বর">
+    <input type="number" id="wdAmount" placeholder="টাকা">
+    <button onclick="requestWithdraw()">উইথড্র করুন</button>
+
+    <small onclick="showAdminLogin()">RR</small>
+
+    <div id="adminLogin">
+      <input type="password" id="adminPass" placeholder="Admin পাসওয়ার্ড">
+      <button onclick="checkAdmin()">লগইন</button>
+    </div>
+
+    <div id="adminSection">
+      <h3>এডমিন প্যানেল</h3>
+      <h4>ম্যাচ যোগ করুন</h4>
+      <input type="text" id="adminMatch" placeholder="ম্যাচ নাম">
+      <input type="number" id="winRate" placeholder="জয়ের হার (%)">
+      <button onclick="addMatch()">যোগ করুন</button>
+
+      <h4>ডিপোজিট রিকুয়েস্ট</h4>
+      <ul id="depList"></ul>
+
+      <h4>উইথড্র রিকুয়েস্ট</h4>
+      <ul id="wdList"></ul>
+
+      <h4>বর্তমান ব্যালেন্স: <span id="bal">0</span>৳</h4>
+    </div>
+  </div>
+
+  <script>
+    let matches = [];
+    let bal = 0, deps = [], wds = [];
+
+    function showAdminLogin(){
+      document.getElementById('adminLogin').style.display = 'block';
+    }
+    function checkAdmin(){
+      if(document.getElementById('adminPass').value==='rezoan'){
+        document.getElementById('adminSection').style.display='block';
+        document.getElementById('adminLogin').style.display='none';
+        refreshAdmin();
+      } else alert('পাসওয়ার্ড ভুল!');
+    }
+    function addMatch(){
+      const m=document.getElementById('adminMatch').value;
+      const r=document.getElementById('winRate').value;
+      if(m&&r){ matches.push({m,r}); updateMatchSelect(); alert('ম্যাচ যোগ হয়েছে'); }
+    }
+    function updateMatchSelect(){
+      const sel=document.getElementById('betMatch');
+      sel.innerHTML= matches.map(x=>`<option value="${x.r}">${x.m} - ${x.r}%</option>`).join('');
+    }
+    function placeBet(){
+      const sel=document.getElementById('betMatch');
+      const amt=document.getElementById('betAmount').value;
+      const rate=sel.value;
+      if(!amt||sel.length==0){ alert('সব কিছু দিন'); return; }
+      const win = (amt*rate/100).toFixed(2);
+      alert(`আপনি ${amt}৳ বেট দিলেন জয়ের সম্ভাবিত: ${win}৳`);
+    }
+    function requestDeposit(){
+      deps.push({m:document.getElementById('depMethod').value, num:document.getElementById('depNumber').value, amt:document.getElementById('depAmount').value});
+      alert('ডিপোজিট রিকুয়েস্ট জমা হয়েছে');
+      refreshAdmin();
+    }
+    function requestWithdraw(){
+      wds.push({m:document.getElementById('wdMethod').value, num:document.getElementById('wdNumber').value, amt:document.getElementById('wdAmount').value});
+      alert('উইথড্র রিকুয়েস্ট জমা হয়েছে');
+      refreshAdmin();
+    }
+    function refreshAdmin(){
+      document.getElementById('depList').innerHTML = deps.map((x,i)=>`<li>${x.m} • ${x.num} • ${x.amt}৳ <button onclick="approveDep(${i})">Approve</button></li>`).join('');
+      document.getElementById('wdList').innerHTML = wds.map((x,i)=>`<li>${x.m} • ${x.num} • ${x.amt}৳ <button onclick="approveWd(${i})">Approve</button></li>`).join('');
+      document.getElementById('bal').textContent = bal;
+    }
+    function approveDep(i){
+      bal+= Number(deps[i].amt);
+      deps.splice(i,1);
+      refreshAdmin();
+      alert('ডিপোজিট অনুমোদিত হয়েছে');
+    }
+    function approveWd(i){
+      const amt=Number(wds[i].amt);
+      if(bal>=amt){
+        bal-=amt; wds.splice(i,1);
+        refreshAdmin(); alert('উইথড্র অনুমোদিত হয়েছে');
+      } else alert('ব্যালেন্স কম');
+    }
+  </script>
+</body>
+</html>
